@@ -1,0 +1,81 @@
+-- 🔮 Script: Botón circular con borde rainbow (móvil o PC)
+-- ⚠️ Ejecutar como LocalScript (por ejemplo, en Delta o en StarterGui)
+
+-- Crear GUI principal
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "RainbowLogo"
+ScreenGui.Parent = game.CoreGui or game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Crear el botón circular
+local Circle = Instance.new("ImageButton")
+Circle.Size = UDim2.new(0, 90, 0, 90)
+Circle.Position = UDim2.new(0.5, -45, 0.5, -45)
+Circle.BackgroundTransparency = 1
+Circle.AutoButtonColor = false
+Circle.Parent = ScreenGui
+
+-- Crear el marco rainbow
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Thickness = 3
+UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+UIStroke.Parent = Circle
+
+-- Crear el fondo oscuro
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(1, 0)
+UICorner.Parent = Circle
+
+local DarkFrame = Instance.new("Frame")
+DarkFrame.Size = UDim2.new(1, -6, 1, -6)
+DarkFrame.Position = UDim2.new(0, 3, 0, 3)
+DarkFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+DarkFrame.Parent = Circle
+
+local UICorner2 = Instance.new("UICorner")
+UICorner2.CornerRadius = UDim.new(1, 0)
+UICorner2.Parent = DarkFrame
+
+-- Animar borde arcoíris 🌈
+task.spawn(function()
+	while true do
+		for hue = 0, 1, 0.005 do
+			UIStroke.Color = Color3.fromHSV(hue, 1, 1)
+			task.wait(0.02)
+		end
+	end
+end)
+
+-- Permitir arrastrar el logo 🖱️
+local dragging = false
+local dragInput, dragStart, startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	Circle.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+Circle.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = Circle.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+Circle.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
