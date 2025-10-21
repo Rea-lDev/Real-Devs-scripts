@@ -1,0 +1,124 @@
+-- AutoClicker 3 CPS (3 clics por segundo)
+-- Pegar este script en tu executor (Synapse, Krnl, etc.)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Crear ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AutoClickerGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- Frame (botón)
+local frame = Instance.new("Frame")
+frame.Name = "AutoClickFrame"
+frame.Size = UDim2.new(0, 160, 0, 40)
+frame.Position = UDim2.new(0.5, -80, 0.8, 0)
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+frame.Active = true
+frame.Draggable = true
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = frame
+
+-- Texto del botón
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "Toggle"
+toggleButton.Size = UDim2.new(1, -12, 1, -12)
+toggleButton.Position = UDim2.new(0, 6, 0, 6)
+toggleButton.BackgroundColor3 = Color3.fromRGB(80, 0, 0)
+toggleButton.TextColor3 = Color3.fromRGB(255,255,255)
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextSize = 16
+toggleButton.AutoButtonColor = false
+toggleButton.Text = "AutoClick: OFF"
+toggleButton.Parent = frame
+
+local statusDot = Instance.new("Frame")
+statusDot.Name = "StatusDot"
+statusDot.Size = UDim2.new(0,10,0,10)
+statusDot.Position = UDim2.new(1, -18, 0, 8)
+statusDot.AnchorPoint = Vector2.new(0,0)
+statusDot.BackgroundColor3 = Color3.fromRGB(150,0,0)
+statusDot.BorderSizePixel = 0
+statusDot.Parent = frame
+
+local dotCorner = Instance.new("UICorner")
+dotCorner.CornerRadius = UDim.new(1,0)
+dotCorner.Parent = statusDot
+
+-- Variables
+local running = false
+local cps = 3 -- clics por segundo deseados
+local interval = 1 / cps
+
+-- Función que ejecuta 1 "clic" (simula Button1Down + Button1Up)
+local function doClick()
+    -- Captura el controlador para que VirtualUser funcione correctamente
+    pcall(function()
+        VirtualUser:CaptureController()
+        VirtualUser:Button1Down(Vector2.new(0,0))
+        -- pequeño delay para simular un clic real
+        task.wait(0.03)
+        VirtualUser:Button1Up(Vector2.new(0,0))
+    end)
+end
+
+-- Loop de autoclick en una coroutine separada para evitar bloquear
+local clickThread
+local function startAutoClick()
+    if running then return end
+    running = true
+    toggleButton.Text = "AutoClick: ON"
+    statusDot.BackgroundColor3 = Color3.fromRGB(0,150,0)
+
+    clickThread = task.spawn(function()
+        while running do
+            local start = tick()
+            pcall(doClick)
+            -- esperar el tiempo restante para mantener 3 CPS
+            local elapsed = tick() - start
+            local waitTime = interval - elapsed
+            if waitTime > 0 then
+                task.wait(waitTime)
+            else
+                -- si se atrasó, yield un frame mínimo
+                task.wait()
+            end
+        end
+    end)
+end
+
+local function stopAutoClick()
+    if not running then return end
+    running = false
+    toggleButton.Text = "AutoClick: OFF"
+    statusDot.BackgroundColor3 = Color3.fromRGB(150,0,0)
+    -- clickThread terminará por sí mismo
+end
+
+-- Toggle al presionar el botón
+toggleButton.MouseButton1Click:Connect(function()
+    if running then
+        stopAutoClick()
+    else
+        startAutoClick()
+    end
+end)
+
+-- Cleanup: destruir GUI si el jugador muere/reaparece
+player.CharacterRemoving:Connect(function()
+    stopAutoClick()
+end)
+
+-- Mensaje opcional en consola
+print("[AutoClicker] Listo - presiona el botón para activar/desactivar (3 CPS).")
