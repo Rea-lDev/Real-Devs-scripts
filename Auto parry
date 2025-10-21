@@ -1,0 +1,181 @@
+-- LocalScript: BladeBall - Alertador de Bola + Spam Trainer (LEGAL)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+-- CONFIGURACIÓN
+local BALL_NAME_PATTERNS = {"Ball","ball","Pelota","bola"} 
+local ALERT_DISTANCE = 8
+local ALERT_COOLDOWN = 0.8
+local PARRY_KEY = Enum.KeyCode.F
+local CHECK_RATE = 0.06
+
+-- GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BladeAlertsGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 300, 0, 110)
+frame.Position = UDim2.new(0, 16, 0, 80)
+frame.BackgroundColor3 = Color3.fromRGB(22,22,22)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, -10, 0, 28)
+title.Position = UDim2.new(0, 5, 0, 5)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextColor3 = Color3.fromRGB(230,230,230)
+title.Text = "Blade Assist — Alertas (LEGAL)"
+
+local alertToggle = Instance.new("TextButton", frame)
+alertToggle.Size = UDim2.new(0, 140, 0, 32)
+alertToggle.Position = UDim2.new(0, 8, 0, 40)
+alertToggle.Font = Enum.Font.SourceSans
+alertToggle.TextSize = 14
+alertToggle.Text = "Alerta: ON"
+alertToggle.BackgroundColor3 = Color3.fromRGB(40,40,40)
+alertToggle.TextColor3 = Color3.fromRGB(240,240,240)
+
+local spamToggle = Instance.new("TextButton", frame)
+spamToggle.Size = UDim2.new(0, 140, 0, 32)
+spamToggle.Position = UDim2.new(0, 156, 0, 40)
+spamToggle.Font = Enum.Font.SourceSans
+spamToggle.TextSize = 14
+spamToggle.Text = "Spam Trainer: OFF"
+spamToggle.BackgroundColor3 = Color3.fromRGB(40,40,40)
+spamToggle.TextColor3 = Color3.fromRGB(240,240,240)
+
+local infoLabel = Instance.new("TextLabel", frame)
+infoLabel.Size = UDim2.new(1, -10, 0, 24)
+infoLabel.Position = UDim2.new(0, 5, 0, 78)
+infoLabel.BackgroundTransparency = 1
+infoLabel.Font = Enum.Font.Gotham
+infoLabel.TextSize = 14
+infoLabel.TextColor3 = Color3.fromRGB(200,200,200)
+infoLabel.Text = ("Umbral: %d studs — Pulsa '%s' para parry"):format(ALERT_DISTANCE, tostring(PARRY_KEY):gsub("Enum.KeyCode.", ""))
+
+-- Alerta grande
+local bigAlert = Instance.new("TextLabel", screenGui)
+bigAlert.Size = UDim2.new(0, 420, 0, 80)
+bigAlert.Position = UDim2.new(0.5, -210, 0.15, 0)
+bigAlert.BackgroundTransparency = 0.12
+bigAlert.BackgroundColor3 = Color3.fromRGB(200,50,50)
+bigAlert.TextColor3 = Color3.fromRGB(255,255,255)
+bigAlert.Font = Enum.Font.GothamBold
+bigAlert.TextSize = 32
+bigAlert.Text = ""
+bigAlert.Visible = false
+bigAlert.ZIndex = 10
+bigAlert.BorderSizePixel = 0
+
+-- Sonido de alerta
+local sound = Instance.new("Sound", player:WaitForChild("PlayerGui"))
+sound.Name = "AlertSound"
+sound.Volume = 0.8
+
+-- Estado
+local alertsOn = true
+local spamOn = false
+
+alertToggle.MouseButton1Click:Connect(function()
+	alertsOn = not alertsOn
+	alertToggle.Text = "Alerta: " .. (alertsOn and "ON" or "OFF")
+	if not alertsOn then bigAlert.Visible = false end
+end)
+
+spamToggle.MouseButton1Click:Connect(function()
+	spamOn = not spamOn
+	spamToggle.Text = "Spam Trainer: " .. (spamOn and "ON" or "OFF")
+end)
+
+-- Spam Trainer
+local spamCount = 0
+local spamStart = 0
+local cpsLabel = Instance.new("TextLabel", frame)
+cpsLabel.Size = UDim2.new(0, 120, 0, 20)
+cpsLabel.Position = UDim2.new(1, -130, 0, 80)
+cpsLabel.BackgroundTransparency = 1
+cpsLabel.Font = Enum.Font.Gotham
+cpsLabel.TextSize = 14
+cpsLabel.TextColor3 = Color3.fromRGB(200,200,200)
+cpsLabel.Text = "CPS: 0"
+
+UserInputService.InputBegan:Connect(function(input, gp)
+	if gp then return end
+	if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == PARRY_KEY then
+		if spamOn then
+			local t = tick()
+			if spamCount == 0 then
+				spamStart = t
+				spamCount = 1
+			else
+				spamCount = spamCount + 1
+			end
+		end
+	end
+end)
+
+-- Función para identificar 'bola'
+local function isBallObject(obj)
+	if not obj:IsA("BasePart") then return false end
+	local name = obj.Name or ""
+	for _, pat in ipairs(BALL_NAME_PATTERNS) do
+		if string.find(name:lower(), pat:lower(), 1, true) then
+			return true
+		end
+	end
+	local sm = obj:FindFirstChildOfClass("SpecialMesh")
+	if sm and (sm.MeshType == Enum.MeshType.Sphere or sm.MeshId ~= "") then
+		return true
+	end
+	return false
+end
+
+-- Bucle principal
+spawn(function()
+	local lastAlert = 0
+	while RunService.Heartbeat:Wait() do
+		if not player.Character or not player.Character.Parent then
+			player.CharacterAdded:Wait()
+			character = player.Character
+			rootPart = character:WaitForChild("HumanoidRootPart")
+		end
+
+		if spamOn then
+			local elapsed = tick() - spamStart
+			local cps = 0
+			if elapsed > 0 and spamCount > 0 then cps = spamCount / math.max(1, elapsed) end
+			cpsLabel.Text = ("CPS: %.2f"):format(cps)
+			if elapsed >= 6 then spamStart = tick() spamCount = 0 end
+		else
+			cpsLabel.Text = "CPS: 0"
+			spamStart = 0
+			spamCount = 0
+		end
+
+		if alertsOn then
+			local nearestBall = nil
+			local nearestDist = math.huge
+			for _, obj in ipairs(workspace:GetDescendants()) do
+				if obj:IsA("BasePart") and not obj:IsDescendantOf(character) and isBallObject(obj) then
+					local success, ballPos = pcall(function() return obj.Position end)
+					if success and rootPart then
+						local dist = (rootPart.Position - ballPos).Magnitude
+						if dist < nearestDist then nearestDist = dist nearestBall = obj end
+					end
+				end
+			end
+
+			if nearestBall and nearestDist <= ALERT_DISTANCE and tick() - lastAlert >= ALERT_COOLDOWN
