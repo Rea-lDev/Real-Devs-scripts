@@ -1,0 +1,80 @@
+-- Crear el ScreenGui principal
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CustomHub"
+screenGui.Parent = playerGui
+
+-- Crear el hub principal (cuadro con esquinas redondeadas)
+local hub = Instance.new("Frame")
+hub.Name = "Hub"
+hub.Size = UDim2.new(0, 200, 0, 100) -- tamaño inicial
+hub.Position = UDim2.new(0.5, -100, 0.5, -50) -- centrado
+hub.BackgroundColor3 = Color3.fromRGB(139, 0, 0) -- rojo oscuro
+hub.AnchorPoint = Vector2.new(0.5, 0.5)
+hub.Parent = screenGui
+hub.ClipsDescendants = true
+hub.Active = true
+hub.Draggable = true -- permite moverlo
+
+-- Esquinas redondeadas
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 12)
+uiCorner.Parent = hub
+
+-- Imagen de adhesivo en los bordes
+local imageLabel = Instance.new("ImageLabel")
+imageLabel.Image = "rbxassetid://107951656726371" -- adhesivo que pusiste
+imageLabel.Size = UDim2.new(1, 0, 1, 0)
+imageLabel.BackgroundTransparency = 1
+imageLabel.Parent = hub
+imageLabel.ScaleType = Enum.ScaleType.Slice
+imageLabel.SliceCenter = Rect.new(10, 10, 118, 118) -- ajusta al borde
+
+-- Botón para abrir/cerrar hub
+local toggleButton = Instance.new("TextButton")
+toggleButton.Text = "Abrir/Cerrar"
+toggleButton.Size = UDim2.new(1, 0, 0, 25)
+toggleButton.Position = UDim2.new(0, 0, 0, 0)
+toggleButton.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.Parent = hub
+
+-- Menú desplegable dentro del hub
+local menu = Instance.new("Frame")
+menu.Size = UDim2.new(1, 0, 0, 150)
+menu.Position = UDim2.new(0, 0, 1, 0)
+menu.BackgroundColor3 = Color3.fromRGB(50, 50, 50) -- gris
+menu.Visible = false
+menu.Parent = hub
+
+local menuCorner = Instance.new("UICorner")
+menuCorner.CornerRadius = UDim.new(0, 10)
+menuCorner.Parent = menu
+
+-- Layout para opciones dentro del menú
+local menuLayout = Instance.new("UIListLayout")
+menuLayout.Parent = menu
+menuLayout.SortOrder = Enum.SortOrder.LayoutOrder
+menuLayout.Padding = UDim.new(0, 5)
+
+-- Función para agregar opciones al menú
+local function addOption(text)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, -10, 0, 30)
+    button.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Text = text
+    button.Parent = menu
+end
+
+-- Ejemplo de opciones
+addOption("Opción 1")
+addOption("Opción 2")
+addOption("Opción 3")
+
+-- Toggle del menú
+toggleButton.MouseButton1Click:Connect(function()
+    menu.Visible = not menu.Visible
+end)
