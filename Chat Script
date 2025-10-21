@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+# quick_text_sender.py
+# Pequeña app: escribir, guardar, seleccionar y "enviar" (copia al portapapeles).
+# No automatiza envíos en otras aplicaciones.
+
+import tkinter as tk
+from tkinter import messagebox, simpledialog, filedialog
+import json
+import os
+
+DATA_FILE = "saved_texts.json"
+
+class QuickTextApp:
+    def __init__(self, root):
+        self.root = root
+        root.title("Quick Text Sender")
+        root.geometry("480x360")
+        root.resizable(False, False)
+
+        # Entry / Text
+        tk.Label(root, text="Texto:").pack(anchor="w", padx=10, pady=(10,0))
+        self.text_entry = tk.Text(root, height=4, wrap="word")
+        self.text_entry.pack(fill="x", padx=10)
+
+        btn_frame = tk.Frame(root)
+        btn_frame.pack(fill="x", padx=10, pady=8)
+        tk.Button(btn_frame, text="Guardar", command=self.save_current).pack(side="left")
+        tk.Button(btn_frame, text="Enviar (copiar)", command=self.send_current).pack(side="left", padx=8)
+        tk.Button(btn_frame, text="Nuevo", command=self.clear_entry).pack(side="left")
+        tk.Button(btn_frame, text="Exportar...", command=self.export_texts).pack(side="right")
+
+        # Saved texts list
+        tk.Label(root, text="Textos guardados:").pack(anchor="w", padx=10)
+        self.listbox = tk.Listbox(root, height=8)
+        self.listbox.pack(fill="both", expand=True, padx=10, pady=(0,10))
+        self.listbox.bind("<Double-Button-1>", self.load_selected)
+        self.listbox.bind("<Delete>", self.delete_selected)
+
+        # Bottom status
+        self.status_var = tk.StringVar()
+        self.status_var.set("Doble clic para cargar. Supr para eliminar.")
+        tk.Label(root, textvariable=self.status_var, anchor="w").pack(fill="x", padx=10, pady=(0,10))
+
+        self.texts = []
+        self.load_data()
+
+    def load_data(self):
+        if os.path.exists(DATA_FILE):
+            try:
+                with open(DATA_FILE, "r", encoding="utf-8") as f:
+                    self.texts = json.load(f)
+            except Exception:
+                self.texts = []
+        else:
+            self.texts = []
+        self.refresh_listbox()
+
+    def save_data(self):
+        try:
+            with open(DATA_FILE, "w", encoding="utf-8") as f:
+                json.dump(self.texts, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo guardar: {e}")
+
+    def refresh_listbox(self):
+        self.listbox.delete(0, tk.END)
+        for i, t in enumerate(self.texts):
+            # show a short preview in the list
+            preview = t.strip().splitlines()[0][:60] if t.strip() else "(vacío)"
+            self.listbox.insert(tk.END, f"{i+1}. {preview}")
+
+    def save_current(self):
+        txt = self.text_entry.get("1.0", tk.END).rstrip("\n")
+        if not txt.strip():
+            messagebox.showinfo("Info", "El texto está vacío.")
+            return
+        self.texts.append(txt)
+        self.save_data()
+        self.refresh_listbox()
+        self.status_var.set("Texto guardado.")
+
+    def send_current(self):
+        txt = self.text_entry.get("1.0", tk.END).rstrip("\n")
+        if not txt.strip():
+            messagebox.showinfo("Info", "Nada que enviar (texto vacío).")
+            return
+        # Copia al portapapeles del sistema (usuario pega manualmente donde quiera)
+        self.root.clipboard_clear()
+        self.root.clipboard_append(txt)
+        self.status_var.set("Texto copiado al portapapeles. Pega manualmente (Ctrl+V).")
+
+    def load_selected(self, event=None):
+        sel = self.listbox.curselection()
+        if not sel: return
+        idx = sel[0]
+        txt = self.texts[idx]
+        self.text_entry.delete("1.0", tk.END)
+        self.text_entry.insert(tk.END, txt)
+        self.status_var.set(f"Texto #{idx+1} cargado en el editor.")
+
+    def delete_selected(self, event=None):
+        sel = self.listbox.curselection()
+        if not sel: return
+        idx = sel[0]
+        if messagebox.askyesno("Eliminar", f"Eliminar texto #{idx+1}?"):
+            self.texts.pop(idx)
+            self.save_data()
+            self.refresh_listbox()
+            self.status_var.set(f"Texto #{idx+1} eliminado.")
+
+    def clear_entry(self):
+        self.text_entry.delete("1.0", tk.END)
+        self.status_var.set("Editor vacío.")
+
+    def export_texts(self):
+        if not self.texts:
+            messagebox.showinfo("Exportar", "No hay textos para exportar.")
+            return
+        path = filedialog.asksaveasfilename(defaultextension=".json",
+                                            filetypes=[("JSON files","*.json"),("All files","*.*")],
+                                            title="Exportar textos guardados")
+        if not path:
+            return
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(self.texts, f, ensure_ascii=False, indent=2)
+            messagebox.showinfo("Exportar", f"Exportado a {path}")
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo exportar: {e}")
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = QuickTextApp(root)
+    root.mainloop()
