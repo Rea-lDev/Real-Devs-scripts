@@ -1,0 +1,643 @@
+loadstring([[
+-- Bloxstrap-Style Mobile GUI (Seguro, sin cheats) - ChatGPT Chamo Edition
+-- Funciones: pestañas, toggles, sliders, paleta de colores, guardar config en Player, touch-friendly
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Evitar duplicados
+if PlayerGui:FindFirstChild("BloxstrapMobile") then
+    PlayerGui.BloxstrapMobile:Destroy()
+end
+
+-- UI Base
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BloxstrapMobile"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = PlayerGui
+
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.Size = UDim2.new(0.92,0,0.78,0)
+main.Position = UDim2.new(0.04,0,0.09,0)
+main.AnchorPoint = Vector2.new(0,0)
+main.BackgroundColor3 = Color3.fromRGB(28,28,28)
+main.BorderSizePixel = 0
+main.Parent = screenGui
+main.Visible = true
+main.ClipsDescendants = true
+main.ZIndex = 2
+main.Active = true
+
+local roundCorner = Instance.new("UICorner", main)
+roundCorner.CornerRadius = UDim.new(0,14)
+
+-- Top bar
+local top = Instance.new("Frame", main)
+top.Name = "Top"
+top.Size = UDim2.new(1,0,0,48)
+top.Position = UDim2.new(0,0,0,0)
+top.BackgroundTransparency = 0
+top.BackgroundColor3 = Color3.fromRGB(20,20,20)
+
+local title = Instance.new("TextLabel", top)
+title.Size = UDim2.new(1, -16, 1, 0)
+title.Position = UDim2.new(0, 8, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "Bloxstrap — Móvil (Segura)"
+title.TextColor3 = Color3.fromRGB(240,240,240)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Close / Minimize buttons container
+local buttonsFrame = Instance.new("Frame", top)
+buttonsFrame.Size = UDim2.new(0, 96, 1, 0)
+buttonsFrame.Position = UDim2.new(1, -104, 0, 0)
+buttonsFrame.BackgroundTransparency = 1
+
+local function makeTopButton(name, x)
+    local btn = Instance.new("TextButton", buttonsFrame)
+    btn.Name = name
+    btn.Size = UDim2.new(0, 40, 0.75, 0)
+    btn.Position = UDim2.new(0, x, 0.125, 0)
+    btn.Text = name == "X" and "✕" or "—"
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 18
+    btn.TextColor3 = Color3.fromRGB(240,240,240)
+    btn.BackgroundTransparency = 0
+    btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    btn.AutoButtonColor = true
+    local c = Instance.new("UICorner", btn)
+    c.CornerRadius = UDim.new(0,8)
+    return btn
+end
+
+local closeBtn = makeTopButton("X", 0)
+local minBtn = makeTopButton("-", 48)
+
+closeBtn.MouseButton1Click:Connect(function()
+    main:Destroy()
+end)
+
+minBtn.MouseButton1Click:Connect(function()
+    main.Visible = not main.Visible
+end)
+
+-- Left Tab Column
+local tabsFrame = Instance.new("Frame", main)
+tabsFrame.Name = "Tabs"
+tabsFrame.Size = UDim2.new(0,110,1,-58)
+tabsFrame.Position = UDim2.new(0,8,0,58)
+tabsFrame.BackgroundTransparency = 1
+
+local tabsLayout = Instance.new("UIListLayout", tabsFrame)
+tabsLayout.Padding = UDim.new(0,8)
+tabsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Content Area (right)
+local content = Instance.new("Frame", main)
+content.Name = "Content"
+content.Size = UDim2.new(1, -134, 1, -58)
+content.Position = UDim2.new(0,124,0,58)
+content.BackgroundTransparency = 1
+
+-- Helper: create tab button
+local function createTab(name)
+    local btn = Instance.new("TextButton")
+    btn.Name = name .. "Tab"
+    btn.Size = UDim2.new(1,0,0,44)
+    btn.BackgroundColor3 = Color3.fromRGB(34,34,34)
+    btn.Text = name
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 16
+    btn.TextColor3 = Color3.fromRGB(230,230,230)
+    btn.AutoButtonColor = true
+    local c = Instance.new("UICorner", btn)
+    c.CornerRadius = UDim.new(0,10)
+    return btn
+end
+
+-- Create pages
+local pages = {}
+
+local function newPage(name)
+    local page = Instance.new("Frame", content)
+    page.Name = name .. "Page"
+    page.Size = UDim2.new(1,0,1,0)
+    page.BackgroundTransparency = 1
+    page.Visible = false
+    pages[name] = page
+    return page
+end
+
+-- Toggle UI element factory
+local function createToggle(text, parent, default)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1,0,0,44)
+    frame.BackgroundTransparency = 1
+
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(0.72,0,1,0)
+    label.Position = UDim2.new(0,8,0,0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 15
+    label.TextColor3 = Color3.fromRGB(240,240,240)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(0.22, -8, 0.7, 0)
+    btn.Position = UDim2.new(0.78, 0, 0.15, 0)
+    btn.Text = default and "ON" or "OFF"
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    btn.TextColor3 = Color3.fromRGB(240,240,240)
+    btn.BackgroundColor3 = default and Color3.fromRGB(20,150,20) or Color3.fromRGB(120,24,24)
+    btn.AutoButtonColor = true
+    local c = Instance.new("UICorner", btn)
+    c.CornerRadius = UDim.new(0,8)
+
+    local state = default or false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = state and "ON" or "OFF"
+        btn.BackgroundColor3 = state and Color3.fromRGB(20,150,20) or Color3.fromRGB(120,24,24)
+        frame:SetAttribute("State", state)
+    end)
+
+    frame.Parent = parent
+    frame:SetAttribute("State", state)
+    return frame
+end
+
+-- Slider factory (touch friendly)
+local function createSlider(text, parent, minv, maxv, default)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1,0,0,54)
+    frame.BackgroundTransparency = 1
+
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(1,0,0,18)
+    label.Position = UDim2.new(0,8,0,0)
+    label.BackgroundTransparency = 1
+    label.Text = text .. " : " .. tostring(default)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 14
+    label.TextColor3 = Color3.fromRGB(230,230,230)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+
+    local bar = Instance.new("Frame", frame)
+    bar.Size = UDim2.new(1,-16,0,12)
+    bar.Position = UDim2.new(0,8,0,28)
+    bar.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    bar.BorderSizePixel = 0
+    local bc = Instance.new("UICorner", bar)
+    bc.CornerRadius = UDim.new(0,6)
+
+    local fill = Instance.new("Frame", bar)
+    fill.Size = UDim2.new((default - minv)/(maxv - minv),0,1,0)
+    fill.Position = UDim2.new(0,0,0,0)
+    fill.BackgroundColor3 = Color3.fromRGB(100,180,255)
+    local fc = Instance.new("UICorner", fill)
+    fc.CornerRadius = UDim.new(0,6)
+
+    local thumb = Instance.new("ImageButton", bar)
+    thumb.Size = UDim2.new(0,18,0,18)
+    thumb.AnchorPoint = Vector2.new(0.5,0.5)
+    thumb.Position = UDim2.new(fill.Size.X.Scale,0,0.5,0)
+    thumb.BackgroundTransparency = 1
+    thumb.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+
+    thumb.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local conn
+            conn = UIS.InputChanged:Connect(function(inp)
+                if inp.UserInputType == Enum.UserInputType.Touch or inp.UserInputType == Enum.UserInputType.MouseMovement then
+                    local absPos = inp.Position.X
+                    local barPos = bar.AbsolutePosition.X
+                    local barSize = bar.AbsoluteSize.X
+                    local relative = math.clamp((absPos - barPos)/barSize, 0, 1)
+                    fill.Size = UDim2.new(relative,0,1,0)
+                    thumb.Position = UDim2.new(relative,0,0.5,0)
+                    local value = math.floor(minv + (maxv - minv) * relative)
+                    label.Text = text .. " : " .. tostring(value)
+                    frame:SetAttribute("Value", value)
+                end
+            end)
+            local upConn
+            upConn = UIS.InputEnded:Connect(function(inp2)
+                if inp2 == input then
+                    conn:Disconnect()
+                    upConn:Disconnect()
+                end
+            end)
+        end
+    end)
+
+    frame.Parent = parent
+    frame:SetAttribute("Value", default or minv)
+    return frame
+end
+
+-- Color Presets
+local function createColorPicker(title, parent, default)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1,0,0,70)
+    frame.BackgroundTransparency = 1
+
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(1,0,0,18)
+    label.Position = UDim2.new(0,8,0,0)
+    label.BackgroundTransparency = 1
+    label.Text = title
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 14
+    label.TextColor3 = Color3.fromRGB(230,230,230)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+
+    local presets = {
+        Color3.fromRGB(100,180,255),
+        Color3.fromRGB(255,120,120),
+        Color3.fromRGB(140, 255, 150),
+        Color3.fromRGB(255, 220, 100),
+        Color3.fromRGB(180,140,255),
+        Color3.fromRGB(200,200,200),
+    }
+
+    local x = 8
+    for i,c in ipairs(presets) do
+        local btn = Instance.new("TextButton", frame)
+        btn.Size = UDim2.new(0,40,0,40)
+        btn.Position = UDim2.new(0, x, 0, 22)
+        btn.BackgroundColor3 = c
+        btn.Text = ""
+        btn.AutoButtonColor = true
+        local u = Instance.new("UICorner", btn)
+        u.CornerRadius = UDim.new(0,8)
+        btn.MouseButton1Click:Connect(function()
+            frame:SetAttribute("Color", c)
+        end)
+        x = x + 48
+    end
+
+    frame.Parent = parent
+    frame:SetAttribute("Color", default or presets[1])
+    return frame
+end
+
+-- Build UI: Tabs and Pages
+local tabNames = {"Visual", "Performance", "HUD", "Ajustes"}
+for i, name in ipairs(tabNames) do
+    local tbtn = createTab(name)
+    tbtn.LayoutOrder = i
+    tbtn.Parent = tabsFrame
+
+    local page = newPage(name)
+    if i == 1 then
+        page.Visible = true
+        tbtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    end
+
+    tbtn.MouseButton1Click:Connect(function()
+        for k,p in pairs(pages) do p.Visible = false end
+        for _,child in ipairs(tabsFrame:GetChildren()) do
+            if child:IsA("TextButton") then
+                child.BackgroundColor3 = Color3.fromRGB(34,34,34)
+            end
+        end
+        page.Visible = true
+        tbtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    end)
+end
+
+-- Populate Visual page
+do
+    local p = pages["Visual"]
+    local y = 8
+    local container = Instance.new("Frame", p)
+    container.Size = UDim2.new(1, -12, 1, -12)
+    container.Position = UDim2.new(0,6,0,6)
+    container.BackgroundTransparency = 1
+
+    local toggle1 = createToggle("Modo Oscuro (UI)", container, true)
+    toggle1.Position = UDim2.new(0,0,0,y); y=y+52
+
+    local colorPicker = createColorPicker("Color Principal", container, Color3.fromRGB(100,180,255))
+    colorPicker.Position = UDim2.new(0,0,0,y); y=y+82
+
+    local sliderFOV = createSlider("Escala UI", container, 80, 140, 100)
+    sliderFOV.Position = UDim2.new(0,0,0,y); y=y+62
+
+    -- React to changes (apply to UI)
+    sliderFOV:SetAttribute("Value", 100)
+    sliderFOV.Changed:Connect(function()
+        local val = sliderFOV:GetAttribute("Value") or 100
+        local scale = val/100
+        local uiScale = main:FindFirstChild("UIScale") or Instance.new("UIScale", main)
+        uiScale.Scale = scale
+    end)
+
+    colorPicker:GetPropertyChangedSignal("Attributes"):Connect(function() end)
+    -- Update color when attribute set
+    spawn(function()
+        while main and main.Parent do
+            local c = colorPicker:GetAttribute("Color")
+            if c then
+                -- apply accent color to title
+                p.Parent.Parent.Top.Title.TextColor3 = Color3.new(1,1,1)
+                -- apply subtle accent border
+                main.BackgroundColor3 = Color3.fromRGB(28,28,28)
+            end
+            wait(0.25)
+        end
+    end)
+end
+
+-- Populate Performance page
+do
+    local p = pages["Performance"]
+    local container = Instance.new("Frame", p)
+    container.Size = UDim2.new(1, -12, 1, -12)
+    container.Position = UDim2.new(0,6,0,6)
+    container.BackgroundTransparency = 1
+
+    local y = 8
+    local fpsToggle = createToggle("Mostrar FPS (Simulado)", container, true)
+    fpsToggle.Position = UDim2.new(0,0,0,y); y=y+52
+
+    local qualitySlider = createSlider("Calidad Gráfica (Local)",  container, 1, 10, 8)
+    qualitySlider.Position = UDim2.new(0,0,0,y); y=y+62
+
+    -- FPS display (local simulated)
+    local fpsLabel = Instance.new("TextLabel", screenGui)
+    fpsLabel.Name = "FPSLabel"
+    fpsLabel.Size = UDim2.new(0,100,0,28)
+    fpsLabel.Position = UDim2.new(1, -110, 0.02, 0)
+    fpsLabel.BackgroundTransparency = 0.5
+    fpsLabel.BackgroundColor3 = Color3.fromRGB(20,20,20)
+    fpsLabel.TextColor3 = Color3.fromRGB(220,220,220)
+    fpsLabel.Font = Enum.Font.GothamBold
+    fpsLabel.TextSize = 14
+    fpsLabel.Text = "FPS: 60"
+    local u = Instance.new("UICorner", fpsLabel)
+    u.CornerRadius = UDim.new(0,8)
+    fpsLabel.Visible = fpsToggle:GetAttribute("State")
+
+    spawn(function()
+        local last = tick()
+        local frames = 0
+        while fpsLabel and fpsLabel.Parent do
+            frames = frames + 1
+            if tick() - last >= 1 then
+                local fps = frames
+                frames = 0
+                last = tick()
+                fpsLabel.Text = "FPS: "..tostring(fps)
+                fpsLabel.Visible = fpsToggle:GetAttribute("State")
+            end
+            wait()
+        end
+    end)
+end
+
+-- Populate HUD page
+do
+    local p = pages["HUD"]
+    local container = Instance.new("Frame", p)
+    container.Size = UDim2.new(1, -12, 1, -12)
+    container.Position = UDim2.new(0,6,0,6)
+    container.BackgroundTransparency = 1
+
+    local y = 8
+    local hpToggle = createToggle("Mostrar Barra de Salud (Fake)", container, true)
+    hpToggle.Position = UDim2.new(0,0,0,y); y=y+52
+
+    local crosshairToggle = createToggle("Mostrar Retícula", container, false)
+    crosshairToggle.Position = UDim2.new(0,0,0,y); y=y+52
+
+    -- simple fake HUD elements
+    local crosshair = Instance.new("ImageLabel", screenGui)
+    crosshair.Name = "Crosshair"
+    crosshair.Size = UDim2.new(0,24,0,24)
+    crosshair.Position = UDim2.new(0.5, -12, 0.5, -12)
+    crosshair.BackgroundTransparency = 1
+    crosshair.Image = "rbxassetid://3570695787" -- simple placeholder circle
+    crosshair.Visible = crosshairToggle:GetAttribute("State")
+    local hpBar = Instance.new("Frame", screenGui)
+    hpBar.Name = "HPBar"
+    hpBar.Size = UDim2.new(0.25,0,0,8)
+    hpBar.Position = UDim2.new(0.5, - (0.25*workspace.CurrentCamera.ViewportSize.X)/2, 0.92, 0)
+    hpBar.AnchorPoint = Vector2.new(0.5,0)
+    hpBar.BackgroundColor3 = Color3.fromRGB(180,50,50)
+    hpBar.Visible = hpToggle:GetAttribute("State")
+    local u1 = Instance.new("UICorner", hpBar)
+    u1.CornerRadius = UDim.new(0,8)
+
+    spawn(function()
+        while screenGui and screenGui.Parent do
+            crosshair.Visible = crosshairToggle:GetAttribute("State")
+            hpBar.Visible = hpToggle:GetAttribute("State")
+            wait(0.2)
+        end
+    end)
+end
+
+-- Ajustes: guardar / cargar
+do
+    local p = pages["Ajustes"]
+    local container = Instance.new("Frame", p)
+    container.Size = UDim2.new(1, -12, 1, -12)
+    container.Position = UDim2.new(0,6,0,6)
+    container.BackgroundTransparency = 1
+
+    local saveBtn = Instance.new("TextButton", container)
+    saveBtn.Size = UDim2.new(0.48, -6, 0, 44)
+    saveBtn.Position = UDim2.new(0,6,0,8)
+    saveBtn.Text = "Guardar Configuración"
+    saveBtn.Font = Enum.Font.GothamBold
+    saveBtn.TextSize = 14
+    saveBtn.BackgroundColor3 = Color3.fromRGB(40,130,220)
+    local usave = Instance.new("UICorner", saveBtn)
+    usave.CornerRadius = UDim.new(0,8)
+
+    local loadBtn = Instance.new("TextButton", container)
+    loadBtn.Size = UDim2.new(0.48, -6, 0, 44)
+    loadBtn.Position = UDim2.new(0.52, 0, 0, 8)
+    loadBtn.Text = "Cargar Configuración"
+    loadBtn.Font = Enum.Font.GothamBold
+    loadBtn.TextSize = 14
+    loadBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+    local uload = Instance.new("UICorner", loadBtn)
+    uload.CornerRadius = UDim.new(0,8)
+
+    -- Save: iterate UI and store attributes in Player
+    local function saveConfig()
+        local folder = LocalPlayer:FindFirstChild("BloxstrapConfig")
+        if folder then folder:Destroy() end
+        folder = Instance.new("Folder", LocalPlayer)
+        folder.Name = "BloxstrapConfig"
+
+        -- collect toggles and sliders
+        for _, page in pairs(content:GetChildren()) do
+            if page:IsA("Frame") then
+                for _, child in pairs(page:GetDescendants()) do
+                    if child:IsA("Frame") and child:GetAttribute("State") ~= nil then
+                        local v = Instance.new("BoolValue", folder)
+                        v.Name = (page.Name .. "_" .. (child:FindFirstChildWhichIsA("TextLabel") and child:FindFirstChildWhichIsA("TextLabel").Text or "Toggle"))
+                        v.Value = child:GetAttribute("State")
+                    elseif child:IsA("Frame") and child:GetAttribute("Value") ~= nil then
+                        local n = Instance.new("NumberValue", folder)
+                        n.Name = (page.Name .. "_" .. (child:FindFirstChildWhichIsA("TextLabel") and child:FindFirstChildWhichIsA("TextLabel").Text or "Slider"))
+                        n.Value = child:GetAttribute("Value")
+                    elseif child:IsA("Frame") and child:GetAttribute("Color") ~= nil then
+                        local s = Instance.new("StringValue", folder)
+                        local c = child:GetAttribute("Color")
+                        s.Name = (page.Name .. "_ColorPicker")
+                        s.Value = tostring(c.R) .. ";" .. tostring(c.G) .. ";" .. tostring(c.B)
+                    end
+                end
+            end
+        end
+    end
+
+    local function loadConfig()
+        local folder = LocalPlayer:FindFirstChild("BloxstrapConfig")
+        if not folder then return end
+        for _, v in pairs(folder:GetChildren()) do
+            if v:IsA("BoolValue") then
+                -- find matching toggle
+                for _, page in pairs(content:GetChildren()) do
+                    for _, child in pairs(page:GetDescendants()) do
+                        if child:IsA("Frame") and child:GetAttribute("State") ~= nil then
+                            local lbl = child:FindFirstChildWhichIsA("TextLabel")
+                            if lbl and (page.Name .. "_" .. lbl.Text) == v.Name then
+                                child:SetAttribute("State", v.Value)
+                                local btn = child:FindFirstChildWhichIsA("TextButton")
+                                if btn then
+                                    btn.Text = v.Value and "ON" or "OFF"
+                                    btn.BackgroundColor3 = v.Value and Color3.fromRGB(20,150,20) or Color3.fromRGB(120,24,24)
+                                end
+                            end
+                        end
+                        if child:IsA("Frame") and child:GetAttribute("Value") ~= nil then
+                            local lbl = child:FindFirstChildWhichIsA("TextLabel")
+                            if lbl and (page.Name .. "_" .. lbl.Text) == v.Name then
+                                child:SetAttribute("Value", v.Value)
+                                -- best-effort: update label text if present
+                                local sLabel = child:FindFirstChildWhichIsA("TextLabel")
+                                if sLabel then
+                                    sLabel.Text = sLabel.Text:match("^(.-: )") and (sLabel.Text:match("^(.-: )") .. tostring(v.Value)) or sLabel.Text
+                                end
+                            end
+                        end
+                        if child:IsA("Frame") and child:GetAttribute("Color") ~= nil then
+                            if (page.Name .. "_ColorPicker") == v.Name then
+                                local parts = {}
+                                for part in string.gmatch(v.Value, "([^;]+)") do
+                                    table.insert(parts, tonumber(part))
+                                end
+                                if #parts == 3 then
+                                    child:SetAttribute("Color", Color3.new(parts[1], parts[2], parts[3]))
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    saveBtn.MouseButton1Click:Connect(function()
+        saveConfig()
+        -- notificación visual simple
+        local t = Instance.new("TextLabel", screenGui)
+        t.Size = UDim2.new(0,200,0,34)
+        t.Position = UDim2.new(0.5, -100, 0.05, 0)
+        t.BackgroundColor3 = Color3.fromRGB(30,30,30)
+        t.TextColor3 = Color3.fromRGB(220,220,220)
+        t.Text = "Configuración guardada"
+        t.Font = Enum.Font.GothamBold
+        t.TextSize = 14
+        t.ZIndex = 10
+        wait(1.2)
+        t:Destroy()
+    end)
+
+    loadBtn.MouseButton1Click:Connect(function()
+        loadConfig()
+        local t = Instance.new("TextLabel", screenGui)
+        t.Size = UDim2.new(0,200,0,34)
+        t.Position = UDim2.new(0.5, -100, 0.05, 0)
+        t.BackgroundColor3 = Color3.fromRGB(30,30,30)
+        t.TextColor3 = Color3.fromRGB(220,220,220)
+        t.Text = "Configuración cargada"
+        t.Font = Enum.Font.GothamBold
+        t.TextSize = 14
+        t.ZIndex = 10
+        wait(1.2)
+        t:Destroy()
+    end)
+end
+
+-- Touch-friendly dragging for main window
+do
+    local dragging = false
+    local dragInput, dragStart, startPos
+
+    main.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragInput = input
+            dragStart = input.Position
+            startPos = main.Position
+        elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragInput = input
+            dragStart = input.Position
+            startPos = main.Position
+        end
+    end)
+
+    main.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    main.InputEnded:Connect(function(input)
+        if input == dragInput then
+            dragging = false
+        end
+    end)
+end
+
+-- Accessibility: open with two-finger tap (mobile) or M key (desktop)
+do
+    local taps = {}
+    UIS.InputBegan:Connect(function(input, processed)
+        if processed then return end
+        if input.UserInputType == Enum.UserInputType.Touch then
+            table.insert(taps, tick())
+            -- remove old
+            for i=#taps,1,-1 do
+                if tick() - taps[i] > 0.6 then table.remove(taps,i) end
+            end
+            if #taps >= 2 then
+                main.Visible = not main.Visible
+                taps = {}
+            end
+        elseif input.KeyCode == Enum.KeyCode.M then
+            main.Visible = not main.Visible
+        end
+    end)
+end
+
+-- Fin del script; estilo visual tipo Bloxstrap, seguro para móvil.
+]])()
