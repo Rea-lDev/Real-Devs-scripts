@@ -1,0 +1,93 @@
+--// Bloxstrap Style Menu by ChatGPT
+--// Chamo Edition 😎🔥
+
+-- Crear ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BloxstrapMenu"
+screenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+
+-- Main Frame
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 420, 0, 340)
+main.Position = UDim2.new(0.5, -210, 0.5, -170)
+main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+main.BorderSizePixel = 0
+main.Parent = screenGui
+
+-- Title Bar
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+title.Text = "Bloxstrap – Configuración"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.Parent = main
+
+-- Crear función de toggle
+local function createToggle(name, parent)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -20, 0, 40)
+    frame.Position = UDim2.new(0, 10, 0, 0)
+    frame.BackgroundTransparency = 1
+    frame.Parent = parent
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.8, 0, 1, 0)
+    label.Position = UDim2.new(0, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 16
+    label.Parent = frame
+
+    local toggle = Instance.new("TextButton")
+    toggle.Size = UDim2.new(0.18, 0, 0.7, 0)
+    toggle.Position = UDim2.new(0.82, 0, 0.15, 0)
+    toggle.Text = "OFF"
+    toggle.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+    toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggle.Font = Enum.Font.GothamBold
+    toggle.TextSize = 14
+    toggle.Parent = frame
+
+    local state = false
+
+    toggle.MouseButton1Click:Connect(function()
+        state = not state
+        toggle.Text = state and "ON" or "OFF"
+        toggle.BackgroundColor3 = state and Color3.fromRGB(0,150,0) or Color3.fromRGB(100,0,0)
+        print(name.." = "..tostring(state))
+    end)
+
+    return frame
+end
+
+-- Scroll Container
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, 0, 1, -40)
+scroll.Position = UDim2.new(0, 0, 0, 40)
+scroll.CanvasSize = UDim2.new(0, 0, 0, 600)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 5
+scroll.Parent = main
+
+-- Añadir toggles estilo Bloxstrap
+local settings = {
+    "Modo Oscuro",
+    "Materiales Mejorados",
+    "FPS Boost",
+    "Sombras Realistas",
+    "Reflejos",
+    "Post-Procesado",
+    "VSync",
+    "Sonido 3D",
+}
+
+local y = 0
+for _, s in ipairs(settings) do
+    local t = createToggle(s, scroll)
+    t.Position = UDim2.new(0, 10, 0, y)
+    y = y + 45
+end
