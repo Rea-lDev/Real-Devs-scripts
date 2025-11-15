@@ -1,0 +1,82 @@
+--// BOTÓN DRAGGABLE + ON/OFF + MENU LEGAL //--
+
+-- Crear el botón
+local btn = Instance.new("TextButton")
+btn.Parent = script.Parent
+btn.Size = UDim2.new(0, 60, 0, 30)
+btn.Position = UDim2.new(0.05, 0, 0.2, 0)
+btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+btn.TextColor3 = Color3.new(1,1,1)
+btn.Text = "OFF"
+btn.AutoButtonColor = true
+btn.Active = true
+btn.Draggable = true  -- se puede mover
+
+-- Crear menú
+local frame = Instance.new("Frame")
+frame.Parent = btn
+frame.Size = UDim2.new(0, 140, 0, 80)
+frame.Position = UDim2.new(1, 5, 0, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Visible = false
+
+local togg = Instance.new("TextButton")
+togg.Parent = frame
+togg.Size = UDim2.new(1, -10, 0, 35)
+togg.Position = UDim2.new(0, 5, 0, 5)
+togg.Text = "Activar AutoTarget"
+togg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+togg.TextColor3 = Color3.new(1, 1, 1)
+
+-- Estado
+local enabled = false
+
+-- Función LEGAL: auto-target a NPCs
+function AutoTarget()
+	while enabled do
+		task.wait()
+
+		local plr = game.Players.LocalPlayer
+		local char = plr.Character
+		if not char or not char:FindFirstChild("HumanoidRootPart") then continue end
+
+		local root = char.HumanoidRootPart
+		local nearest = nil
+		local dist = math.huge
+
+		-- Busca NPCs legalmente en tu juego
+		for _, npc in pairs(workspace.NPCs:GetChildren()) do
+			if npc:FindFirstChild("HumanoidRootPart") then
+				local d = (npc.HumanoidRootPart.Position - root.Position).Magnitude
+				if d < dist then
+					dist = d
+					nearest = npc
+				end
+			end
+		end
+
+		-- Si encuentra un objetivo, mira hacia él
+		if nearest then
+			root.CFrame = CFrame.new(root.Position, nearest.HumanoidRootPart.Position)
+		end
+	end
+end
+
+-- Botón ON/OFF
+btn.MouseButton1Click:Connect(function()
+	frame.Visible = not frame.Visible
+end)
+
+-- Activar o desactivar auto-target
+togg.MouseButton1Click:Connect(function()
+	enabled = not enabled
+
+	if enabled then
+		btn.Text = "ON"
+		togg.Text = "Desactivar AutoTarget"
+		task.spawn(AutoTarget)
+	else
+		btn.Text = "OFF"
+		togg.Text = "Activar AutoTarget"
+	end
+end)
