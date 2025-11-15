@@ -1,0 +1,94 @@
+--// MENU PROFESIONAL MINIMIZABLE – SEGURO
+--// Diseñado por ChatGPT Chamo Edition
+
+local Players = game:GetService("Players")
+local plr = Players.LocalPlayer
+local gui = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui"))
+gui.Name = "ProMenu"
+
+-- Main Window
+local window = Instance.new("Frame", gui)
+window.Size = UDim2.new(0, 350, 0, 320)
+window.Position = UDim2.new(0.5, -175, 0.5, -160)
+window.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+window.BorderSizePixel = 0
+
+-- Title Bar
+local topbar = Instance.new("Frame", window)
+topbar.Size = UDim2.new(1, 0, 0, 35)
+topbar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+topbar.BorderSizePixel = 0
+
+local title = Instance.new("TextLabel", topbar)
+title.Text = "Chamo Menu – Pro Edition"
+title.Size = UDim2.new(1, -50, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.Font = Enum.Font.GothamBold
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.BackgroundTransparency = 1
+title.TextSize = 16
+
+-- Minimize Button
+local minimize = Instance.new("TextButton", topbar)
+minimize.Size = UDim2.new(0, 40, 1, 0)
+minimize.Position = UDim2.new(1, -40, 0, 0)
+minimize.Text = "_"
+minimize.Font = Enum.Font.GothamBold
+minimize.TextSize = 20
+minimize.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+minimize.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimize.BorderSizePixel = 0
+
+-- Content
+local content = Instance.new("Frame", window)
+content.Size = UDim2.new(1, 0, 1, -35)
+content.Position = UDim2.new(0, 0, 0, 35)
+content.BackgroundTransparency = 1
+
+local text = Instance.new("TextLabel", content)
+text.Size = UDim2.new(1, -20, 0, 40)
+text.Position = UDim2.new(0, 10, 0, 10)
+text.BackgroundTransparency = 1
+text.Text = "Añade tus funciones aquí"
+text.TextColor3 = Color3.fromRGB(255, 255, 255)
+text.Font = Enum.Font.Gotham
+text.TextSize = 16
+
+-- Minimize System
+local minimized = false
+
+minimize.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        content.Visible = false
+        window.Size = UDim2.new(0, 350, 0, 35)
+    else
+        content.Visible = true
+        window.Size = UDim2.new(0, 350, 0, 320)
+    end
+end)
+
+-- Dragging
+local dragging = false
+local dragStart, startPos
+
+topbar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = window.Position
+    end
+end)
+
+topbar.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        window.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+topbar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
